@@ -16,6 +16,7 @@ export default async function FeaturesPage() {
   const available = {
     notion: Boolean(config.notion()),
     sheets: Boolean(config.googleServiceAccount()),
+    drive: Boolean(config.drive()),
   };
 
   /** Reading needs no credentials; only writing does. So sheets is never fully unavailable. */
@@ -24,7 +25,9 @@ export default async function FeaturesPage() {
       ? "Needs NOTION_CLIENT_ID and NOTION_CLIENT_SECRET — the tools stay hidden until it has them."
       : f.needs === "sheets" && !available.sheets
         ? "Reading works; writing needs GOOGLE_SERVICE_ACCOUNT_JSON."
-        : null;
+        : f.needs === "drive" && !available.drive
+          ? "Needs DRIVE_FOLDER_ID and GOOGLE_SERVICE_ACCOUNT_JSON, with the folder shared to that account."
+          : null;
 
   return (
     <>

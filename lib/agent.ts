@@ -21,6 +21,7 @@ import * as usage from "./usage";
 import * as stickers from "./stickers";
 import * as notion from "./notion";
 import * as tasks from "./tasks";
+import * as drive from "./drive";
 import * as sheets from "./sheets";
 import * as reminders from "./reminders";
 import * as features from "./features";
@@ -337,6 +338,17 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
           "- Always find things first: `notion_search` for pages, `notion_find_database` for task lists and trackers. Ids come from those and nowhere else — never invent one.",
           "- Adding to a database needs the exact column names, so read it with `notion_read_database` before adding a row unless you already saw the columns this turn.",
           "- Writing to someone's notes is not reversible from here. When a request is vague about where something should go, ask which page first.",
+          "",
+        ]
+      : []),
+    ...(has("drive") && config.drive()
+      ? [
+          `${config.drive()!.name}'s Google Drive:`,
+          `- You are ${config.drive()!.name}'s business brain. Its shared Drive folder is where the company's own knowledge lives — processes, prices, clients, policies, contracts, plans. For any question about the business, search it with \`drive_search\` before answering, then read the files that look relevant with \`drive_read\` and answer from what they actually say.`,
+          "- Search with a few distinctive words, not the whole question. If the first search finds nothing, try synonyms or the other language (Spanish and English both occur), or look around with `drive_browse`, before concluding it is not there.",
+          "- Say which document the answer came from and give its link, so people can check it. When two documents disagree, say so and prefer the more recently modified one.",
+          "- If the Drive does not contain the answer, say that plainly. Never fill the gap with a plausible guess about how this company works — a wrong internal policy stated confidently is worse than no answer.",
+          "- Keep it short: the answer first, then the source. Quote the relevant line when the exact wording matters (a price, a deadline, a clause).",
           "",
         ]
       : []),
@@ -1012,6 +1024,77 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
       }
     },
   }),
+
+  /*
+   * The company Drive. Offered only when a folder is configured, so a deployment without one
+   * never hears it exists. Every id is checked against the folder tree inside `lib/drive.ts`,
+   * not here: the model may pass any id it likes and still reach nothing outside the folder.
+   */
+  ...(config.drive()
+    ? {
+        drive_search: tool({
+          description:
+            "Search the company's Google Drive folder by words in a file's name or contents. Use it first for any question about the business — processes, prices, clients, policies, contracts, people, plans — before answering from general knowledge. Returns files with their ids and links.",
+          inputSchema: z.object({
+            query: z
+              .string()
+              .describe(
+                "A few distinctive words likely to appear in the document, e.g. 'política de vacaciones' or 'tarifas 2026'. Not a full question.",
+              ),
+          }),
+          execute: async ({ query }) => {
+            try {
+              return await drive.search(query);
+            } catch (err) {
+              const why = err instanceof Error ? err.message : String(err);
+              console.error("[drive] search failed", why);
+              return `Could not search the company Drive: ${why}`;
+            }
+          },
+        }),
+
+        drive_browse: tool({
+          description:
+            "List what is in a folder of the company Drive — the top level when no folder is given. For finding one's way around, or when a search found nothing and the answer may be filed under a name nobody would search for.",
+          inputSchema: z.object({
+            folderId: z
+              .string()
+              .optional()
+              .describe("A folder id from an earlier listing. Omit for the top level."),
+          }),
+          execute: async ({ folderId }) => {
+            try {
+              return await drive.browse(folderId);
+            } catch (err) {
+              return `Could not list that folder: ${err instanceof Error ? err.message : String(err)}`;
+            }
+          },
+        }),
+
+        drive_read: tool({
+          description:
+            "Read a file from the company Drive as text: Docs, Sheets (every tab), Slides, PDFs, Word files and plain text. Long files come a page at a time; the reply says which offset to pass for the next page.",
+          inputSchema: z.object({
+            fileId: z.string().describe("The id from drive_search or drive_browse. Never invent one."),
+            offset: z
+              .number()
+              .int()
+              .min(0)
+              .optional()
+              .describe("Where to continue a long file, as given at the end of the previous page."),
+          }),
+          execute: async ({ fileId, offset }) => {
+            try {
+              return await drive.read(fileId, offset ?? 0);
+            } catch (err) {
+              const why = err instanceof Error ? err.message : String(err);
+              console.error("[drive] read failed", why);
+              return `Could not read that file: ${why}`;
+            }
+          },
+        }),
+      }
+    : {}),
 
   sheet_info: tool({
     description:

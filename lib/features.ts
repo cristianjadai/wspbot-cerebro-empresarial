@@ -27,7 +27,7 @@ export type Feature = {
   /** Tool names withdrawn when this is off. Some features are prompt- or handler-only. */
   tools: string[];
   /** Also needs deployment configuration; the dashboard says so rather than lying about it. */
-  needs?: "notion" | "sheets" | "leaderboard";
+  needs?: "notion" | "sheets" | "leaderboard" | "drive";
 };
 
 /**
@@ -167,6 +167,15 @@ export const FEATURES: Feature[] = [
       "Share a Google Sheets link and ask what is missing, or have it fill something in. Reading a public sheet needs no setup.",
     tools: ["sheet_read", "sheet_info", "sheet_update", "sheet_append"],
     needs: "sheets",
+  },
+  {
+    key: "drive",
+    title: "Knows the company Drive",
+    detail:
+      "Ask about the business — a process, a price, a client, a policy — and it searches the company's Google Drive folder, reads the documents and answers from them, with the link.",
+    claim: "answer questions about the company from its Google Drive",
+    tools: ["drive_search", "drive_browse", "drive_read"],
+    needs: "drive",
   },
   {
     key: "notion",

@@ -35,7 +35,7 @@ bot   → Done.
 |  |  |
 | --- | --- |
 | **What it is** | One Next.js container: a webhook that answers WhatsApp, and a dashboard that decides what it may do |
-| **Abilities** | 25 switchable features over 49 model tools, plus 3 that are always on |
+| **Abilities** | 26 switchable features over 52 model tools, plus 3 that are always on |
 | **Storage** | Postgres, 25 tables — memory, history, stickers, schedules, supporters, roadmap, spend |
 | **Runs on** | A Dokploy VPS behind Traefik, alongside the WhatsApp gateway it talks to |
 | **Guarded by** | 19 check scripts that exercise the real thing rather than asserting about it |
@@ -764,6 +764,31 @@ repositories it may write to.
 npm run github-check    # the refusals: which chats may ask, the allowlist, each switch, the
                         # daily ceiling, and whether the installed token can really write there
 ```
+
+## The company Drive
+
+Point it at one Google Drive folder and it answers questions about the business from what is
+filed there — a process, a price, a client, a policy — and says which document it read, with
+the link.
+
+```env
+DRIVE_FOLDER_ID=https://drive.google.com/drive/folders/<id>   # the URL or the bare id
+COMPANY_NAME=Jadai                                            # how the bot names whose Drive it is
+GOOGLE_SERVICE_ACCOUNT_JSON={...}                             # the same account Sheets uses
+```
+
+Share the folder with the service account's `client_email` as a **Viewer**. That is the whole
+setup; the scope requested is `drive.readonly`, so nothing here can change a file.
+
+- **Three tools.** `drive_search` over names and contents (Drive's own full-text index, which
+  covers Docs, Sheets, Slides and the text of PDFs and Office files), `drive_browse` to look
+  around a folder, and `drive_read` to read one file as text, a page at a time.
+- **The folder is a boundary, not a starting point.** Every id the model passes is checked
+  against the folder tree before anything is read. A service account tends to accumulate
+  access; a group chat must not be able to ask its way into whatever else it can reach.
+- **Sheets are read through the Sheets API**, every tab, not the CSV export that stops at the
+  first one. PDFs are read with `unpdf`, Word files with `mammoth`. A scanned PDF has no text
+  layer and the bot says so rather than inventing its contents.
 
 ## Google Sheets
 

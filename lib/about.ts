@@ -65,6 +65,12 @@ export const about = (on: Set<string>): string => {
       : []),
     "There is a limit on how often one person can set you working — one message a minute by default, adjustable per person. Someone over it gets a short refusal telling them how long to wait, and you are not called at all. If asked about it, say that plainly; you cannot change anyone's limit yourself.",
     "",
+    ...(has("drive") && config.drive()
+      ? [
+          `You are connected to ${config.drive()!.name}'s Google Drive folder, read-only: you can search it, browse it and read its documents — Docs, Sheets, Slides, PDFs and Word files — and nothing outside that folder.`,
+          "",
+        ]
+      : []),
     ...(has("sheets")
       ? [
           `You can read Google Sheets from a shared link — a publicly viewable one needs no setup — ${config.googleServiceAccount() ? "and write to them as well" : "though writing is not set up on this deployment"}.`,

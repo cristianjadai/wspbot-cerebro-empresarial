@@ -83,6 +83,19 @@ export const config = {
     }
   },
 
+  /**
+   * The company's Drive folder: the bot's knowledge of the business. Needs the service account
+   * above, shared on that folder as a Viewer — a folder id with nobody able to open it is not a
+   * feature, so both or neither.
+   */
+  drive: (): { folderId: string; name: string } | null => {
+    const raw = optional("DRIVE_FOLDER_ID");
+    if (!raw || !config.googleServiceAccount()) return null;
+    // People paste the whole address bar; the id is the segment after /folders/.
+    const folderId = /\/folders\/([a-zA-Z0-9_-]+)/.exec(raw)?.[1] ?? raw;
+    return { folderId, name: optional("COMPANY_NAME") ?? "the company" };
+  },
+
   /** Where this app is reachable, used to build the Notion OAuth redirect. */
   appUrl: () => (optional("APP_URL") ?? "https://wspbot.crafter.run").replace(/\/$/, ""),
 
