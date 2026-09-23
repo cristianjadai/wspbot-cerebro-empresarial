@@ -32,6 +32,9 @@ const RATES: Record<string, { input: number; output: number }> = {
   "gpt-5.6-sol": { input: 5.0, output: 30.0 },
   "gpt-5.6-terra": { input: 2.0, output: 12.0 },
   "gpt-5.6-luna": { input: 0.2, output: 1.2 },
+  "claude-opus-5": { input: 5.0, output: 25.0 },
+  "claude-sonnet-5": { input: 2.0, output: 10.0 },
+  "claude-haiku-4-5": { input: 1.0, output: 5.0 },
 };
 
 /**

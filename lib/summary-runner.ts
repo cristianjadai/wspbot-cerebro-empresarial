@@ -1,6 +1,6 @@
 import "server-only";
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { languageModel } from "./llm";
 import { z } from "zod";
 import { config } from "./config";
 import { wapi } from "./wapi";
@@ -95,7 +95,7 @@ export const compose = async (
   window: summaries.Window,
 ): Promise<{ text: string; images: number[] }> => {
   const result = await generateObject({
-    model: openai(config.summaryModel()),
+    model: languageModel(config.summaryModel()),
     schema: SummarySchema,
     system: INSTRUCTIONS,
     prompt: [

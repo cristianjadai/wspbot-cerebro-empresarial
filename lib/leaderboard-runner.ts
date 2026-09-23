@@ -1,6 +1,6 @@
 import "server-only";
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { languageModel } from "./llm";
 import { config } from "./config";
 import { query } from "./db";
 import { wapi } from "./wapi";
@@ -145,7 +145,7 @@ const cheer = async (
   try {
     const examples = await voiceOf(chat);
     const result = await generateText({
-      model: openai(config.model()),
+      model: languageModel(config.model()),
       system: [
         "You write one short line of encouragement for a WhatsApp group, asking people to go and vote for the group's own project in a public contest.",
         "",

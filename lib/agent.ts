@@ -10,6 +10,7 @@ import {
   type FilePart,
 } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { claudeEffort, hasOpenAI, languageModel, webSearch } from "./llm";
 import { z } from "zod";
 import { config } from "./config";
 import { query } from "./db";
@@ -491,8 +492,8 @@ const httpUrl = z
  * a redundant "here you go".
  */
 const toolsFor = (turn: Turn, sent: string[]) => ({
-  // Provider-executed: OpenAI runs the search itself, so there is nothing to implement here.
-  web_search: openai.tools.webSearch({ searchContextSize: "medium" }),
+  // Provider-executed: the model's own provider runs the search, so nothing to implement here.
+  web_search: webSearch(config.model()),
 
   send_media: tool({
     description:
@@ -1876,13 +1877,21 @@ export const reply = async (turn: Turn): Promise<Reply> => {
    * which is the difference between "off" and "refuses when asked".
    */
   if (on.has("github") && !(await github.availableIn(turn.chat))) on.delete("github");
+  /*
+   * Drawing and speaking are OpenAI-only. With Claude as the brain and no OpenAI key they are
+   * withdrawn the same way, so the bot does not promise a voice note it cannot produce.
+   */
+  if (!hasOpenAI()) {
+    on.delete("voice");
+    on.delete("stickers_draw");
+  }
 
   const content = await buildUserContent(turn, on);
   const history = await loadHistory(turn.chat);
   const sent: string[] = [];
 
   const result = await generateText({
-    model: openai(config.model()),
+    model: languageModel(config.model()),
     system: await systemPrompt(turn, on),
     messages: [...history, { role: "user", content }],
     tools: features.withdraw(toolsFor(turn, sent), on),
@@ -1894,6 +1903,8 @@ export const reply = async (turn: Turn): Promise<Reply> => {
         // A WhatsApp reply that needs scrolling has already failed.
         textVerbosity: "low",
       },
+      // Each provider reads only its own key, so both can sit here whichever one runs.
+      anthropic: { effort: claudeEffort(config.effort()) },
     },
   });
 

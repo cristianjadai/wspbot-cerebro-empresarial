@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { generateObject, generateImage } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { languageModel } from "./llm";
 import { z } from "zod";
 import { config } from "./config";
 import { query } from "./db";
@@ -253,7 +254,7 @@ const describe = async (
 ): Promise<{ label: string; description: string | null }> => {
   try {
     const result = await generateObject({
-      model: openai(config.visionModel()),
+      model: languageModel(config.visionModel()),
       schema: z.object({
         label: z
           .string()
