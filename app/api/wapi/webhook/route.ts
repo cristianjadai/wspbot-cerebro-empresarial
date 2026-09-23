@@ -99,6 +99,11 @@ async function handle({ event, data }: WebhookBody): Promise<void> {
 
   const message = mentions.parse(data);
   if (!message) return;
+  /*
+   * The allowlist comes before everything — replies, sticker capture, recording — because the
+   * number sits in far more groups than the bot is meant for. A chat not on it is not looked at.
+   */
+  if (!config.chatAllowed(message.chat)) return;
 
   const me = await wapi.meCached();
   const identity = mentions.identityOf(me);

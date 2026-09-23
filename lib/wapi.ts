@@ -84,6 +84,17 @@ export type WapiUser = { id: string; name: string | null; lid: string | null };
 const IDENTITY_TTL_MS = 60 * 60 * 1000;
 let cachedUser: { user: WapiUser; at: number } | undefined;
 
+/**
+ * The outbound half of `BOT_ALLOWED_CHATS`. The webhook already ignores other chats, but a
+ * reminder, a digest or a chime is sent from a timer, not from an inbound message — so every
+ * send checks the fence again here, where nothing can go around it.
+ */
+const fenced = (to: string | null | undefined): void => {
+  if (to && !config.chatAllowed(to)) {
+    throw new Error(`refusing to send to ${to}: not in BOT_ALLOWED_CHATS`);
+  }
+};
+
 export const wapi = {
   /** Connection state of the session this key belongs to. Lowercase, unlike `connect`. */
   status(): Promise<string> {
@@ -127,11 +138,13 @@ export const wapi = {
     text: string,
     opts: { mentions?: string[] } = {},
   ): Promise<SendResult> {
+    fenced(to);
     return client().messages.send({ to, text, ...opts });
   },
 
   /** The general form. `sendText` is the common case; this covers media, polls and locations. */
   send(input: SendMessageInput): Promise<SendResult> {
+    fenced(input.to);
     return client().messages.send(input as SdkSendMessageInput);
   },
 
@@ -169,6 +182,7 @@ export const wapi = {
     key: Parameters<WapiClient["messages"]["react"]>[0],
     emoji: string,
   ): Promise<{ id: string | null; emoji: string }> {
+    fenced(key.remoteJid);
     return client().messages.react(key, emoji);
   },
 
@@ -188,6 +202,7 @@ export const wapi = {
   async markRead(
     key: Parameters<WapiClient["messages"]["markRead"]>[0],
   ): Promise<void> {
+    fenced(key.remoteJid);
     await client().messages.markRead(key);
   },
 };

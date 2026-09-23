@@ -224,6 +224,23 @@ export const config = {
   },
 
   /**
+   * The only chats the bot may act in, as comma-separated JIDs (`...@g.us`). The WhatsApp number
+   * it runs on is usually a real one that sits in many unrelated groups, so this is the fence:
+   * set, and every other chat is ignored entirely — no reply, no sticker capture, no recording,
+   * nothing sent. Unset means everywhere, which is the upstream behaviour.
+   */
+  allowedChats: (): Set<string> | null => {
+    const raw = optional("BOT_ALLOWED_CHATS");
+    if (!raw) return null;
+    return new Set(raw.split(",").map((c) => c.trim()).filter(Boolean));
+  },
+
+  chatAllowed: (chat: string): boolean => {
+    const allowed = config.allowedChats();
+    return !allowed || allowed.has(chat);
+  },
+
+  /**
    * Off by default: the bot is a group tool, and a one-to-one chat has no tagging convention to
    * signal when it is wanted, so it would answer everything anyone sent it.
    */
