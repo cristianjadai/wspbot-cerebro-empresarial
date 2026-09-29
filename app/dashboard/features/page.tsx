@@ -17,6 +17,7 @@ export default async function FeaturesPage() {
     notion: Boolean(config.notion()),
     sheets: Boolean(config.googleServiceAccount()),
     drive: Boolean(config.drive()),
+    content: Boolean(config.contentIntake()),
   };
 
   /** Reading needs no credentials; only writing does. So sheets is never fully unavailable. */
@@ -27,7 +28,9 @@ export default async function FeaturesPage() {
         ? "Reading works; writing needs GOOGLE_SERVICE_ACCOUNT_JSON."
         : f.needs === "drive" && !available.drive
           ? "Needs DRIVE_FOLDER_ID and GOOGLE_SERVICE_ACCOUNT_JSON, with the folder shared to that account."
-          : null;
+          : f.needs === "content" && !available.content
+            ? "Needs CONTENT_INGEST_URL, CONTENT_INGEST_SECRET and CONTENT_GROUP_CHATS."
+            : null;
 
   return (
     <>

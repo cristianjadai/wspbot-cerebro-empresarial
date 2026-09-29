@@ -27,7 +27,7 @@ export type Feature = {
   /** Tool names withdrawn when this is off. Some features are prompt- or handler-only. */
   tools: string[];
   /** Also needs deployment configuration; the dashboard says so rather than lying about it. */
-  needs?: "notion" | "sheets" | "leaderboard" | "drive";
+  needs?: "notion" | "sheets" | "leaderboard" | "drive" | "content";
 };
 
 /**
@@ -269,6 +269,15 @@ export const FEATURES: Feature[] = [
       "Anyone can ask what is being built; supporters can back items and suggest new ones. A vote is weighted by how much somebody has chipped in, capped so nobody can own the list, and a suggestion waits for approval before it becomes votable. Voting ranks things — it never switches a feature on.",
     claim: "say what is on the roadmap, and take votes on it from supporters",
     tools: ["list_roadmap", "vote_roadmap", "propose_roadmap"],
+  },
+  {
+    key: "content_intake",
+    title: "Files ideas on the content board",
+    detail:
+      "In the content group, tag it with an idea or a task — or tag it in a reply to a message that has one — and it files it on the Jadai CRM content kanban and calendar, reacting 💡 or ✅. It never reads messages it is not tagged in. Tag it to ask what is planned, too: which videos are in production, what goes out this week.",
+    claim: "file content ideas and tasks on the content board, and say what is planned there",
+    tools: ["save_content", "content_board"],
+    needs: "content",
   },
   {
     key: "usage_report",

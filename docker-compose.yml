@@ -12,6 +12,10 @@ services:
       DRIVE_FOLDER_ID: ${DRIVE_FOLDER_ID}
       COMPANY_NAME: ${COMPANY_NAME}
       BOT_ALLOWED_CHATS: ${BOT_ALLOWED_CHATS}
+      # Content group -> Jadai CRM. All three, or the content_intake feature stays inert.
+      CONTENT_INGEST_URL: ${CONTENT_INGEST_URL}
+      CONTENT_INGEST_SECRET: ${CONTENT_INGEST_SECRET}
+      CONTENT_GROUP_CHATS: ${CONTENT_GROUP_CHATS}
       BOT_MODEL: ${BOT_MODEL}
       BOT_EFFORT: ${BOT_EFFORT}
       DATABASE_URL: ${DATABASE_URL}

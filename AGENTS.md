@@ -61,6 +61,7 @@ lib/leaderboard.ts               a public vote board: the gap to the next place,
 lib/leaderboard-runner.ts        fires it, without the model — the sentence is a subtraction
 lib/summaries.ts                 scheduled digests: schedules, the log, the transcript
 lib/summary-recorder.ts          writing down a recorded group; lib/summary-runner.ts fires it
+lib/content-intake.ts            the Jadai CRM content board: file a tagged idea, read the board
 lib/cron.ts                      five-field cron, evaluated as "does this minute match?"
 lib/usage.ts                     token accounting, cost estimate
 ```

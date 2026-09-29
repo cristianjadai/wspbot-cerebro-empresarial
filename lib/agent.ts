@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import {
   generateText,
   generateSpeech,
@@ -27,6 +28,7 @@ import * as reminders from "./reminders";
 import * as features from "./features";
 import * as summaries from "./summaries";
 import * as chime from "./chime";
+import * as contentIntake from "./content-intake";
 import * as github from "./github";
 import * as stickerSite from "./sticker-site";
 import * as supporters from "./supporters";
@@ -147,6 +149,8 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
   const recordedForDigest = has("summaries") && (await summaries.recordedChats()).has(turn.chat);
   const recordedForChime = has("chime") && (await chime.chimedChats()).has(turn.chat);
   const recorded = recordedForDigest || recordedForChime;
+  /** The content group: where ideas and tasks can be filed on, and read from, the CRM board. */
+  const contentChat = has("content_intake") && contentIntake.isContentChat(turn.chat);
   const quoted = has("quoted") ? turn.quoted : undefined;
   const source = has("stickers_make") ? stickerSource(turn) : undefined;
 
@@ -275,6 +279,12 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
           "- `leaderboard` reads the live vote count and works out the gap to the next place. See the section on it below.",
         ]
       : []),
+    ...(contentChat
+      ? [
+          "- `save_content` files an idea or a task on the Jadai content board (kanban and calendar in the CRM). Call it when someone tags you with a content idea or task, or tags you in a reply to a message that has one — pass the idea in their words, including the quoted message's text when that is what they point at, plus any date, format or account they mention. One call per idea. You only ever file what you are tagged with; never file other messages from the chat.",
+          "- `content_board` reads the Jadai content board: ideas, tasks, what is in production and what is scheduled to publish. Call it whenever someone asks what is planned, which videos or posts are coming, what is pending or overdue — the board changes, so call it again rather than reusing an earlier answer. Answer only what was asked (e.g. only videos, only this week), grouped the way the question implies, in the chat's language.",
+        ]
+      : []),
     ...(has("usage_report")
       ? [
           "- `check_usage` reports what you have cost so far. Use it when someone asks about tokens, usage or spending, and read the figures back plainly.",
@@ -348,7 +358,8 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
           "- Search with a few distinctive words, not the whole question. If the first search finds nothing, try synonyms or the other language (Spanish and English both occur), or look around with `drive_browse`, before concluding it is not there.",
           "- Say which document the answer came from and give its link, so people can check it. When two documents disagree, say so and prefer the more recently modified one.",
           "- If the Drive does not contain the answer, say that plainly. Never fill the gap with a plausible guess about how this company works — a wrong internal policy stated confidently is worse than no answer.",
-          "- Keep it short: the answer first, then the source. Quote the relevant line when the exact wording matters (a price, a deadline, a clause).",
+          "- Summarise, do not transcribe. A document is long and a WhatsApp answer is not: give the gist in two to four short lines, then the source link. A ten-step procedure becomes the three steps that matter plus \"the full runbook has the rest\". Go long only when someone explicitly asks for the detail, the full list or the whole document.",
+          "- Quote the relevant line when the exact wording matters (a price, a deadline, a clause).",
           "",
         ]
       : []),
@@ -1711,7 +1722,7 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
 
   propose_roadmap: tool({
     description:
-      "Suggest something new for the roadmap on behalf of the person speaking. Only supporters may propose. A suggestion is not votable straight away — it waits for Jibaru to approve it — so say that plainly rather than implying it is now on the list.",
+      "Suggest something new for the roadmap on behalf of the person speaking. Only supporters may propose. A suggestion is not votable straight away — it waits for Cristian to approve it — so say that plainly rather than implying it is now on the list.",
     inputSchema: z.object({
       title: z.string().describe("One line, in their words, naming the thing they want."),
       detail: z
@@ -1733,7 +1744,7 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
         state: "proposed",
         proposedBy: supporter.handles[0] ?? null,
       });
-      return `Noted "${title}" as a suggestion. It is waiting for Jibaru to approve it before anyone can vote on it.`;
+      return `Noted "${title}" as a suggestion. It is waiting for Cristian to approve it before anyone can vote on it.`;
     },
   }),
 
@@ -1742,6 +1753,34 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
       "List the people who have chipped in towards running this bot. Use it when someone asks who supports it, who paid for it, or who is behind it. Names and how they helped only — there are no amounts to report and you must not invent any.",
     inputSchema: z.object({}),
     execute: async () => supporters.render(await supporters.list()),
+  }),
+
+  save_content: tool({
+    description:
+      "File a content idea or task on the Jadai content board. Pass the idea or task as the person said it, including the text of the message they replied to if that is what they point at, and any date, format (video, carrusel…) or LinkedIn account they mention. The CRM decides whether it is an idea or a task. Only works in the content group.",
+    inputSchema: z.object({
+      text: z.string().min(1).describe("The idea or task, in the person's words, with the relevant context."),
+    }),
+    execute: async ({ text }) => {
+      if (!contentIntake.isContentChat(turn.chat)) {
+        return "Ideas can only be filed from the content group. Say so.";
+      }
+      const base = turn.messageKey?.id ?? `${turn.chat}:${Date.now()}`;
+      // Stable per message and per idea: a retried delivery re-files nothing, two ideas in one
+      // message still become two cards.
+      const id = `${base}:${createHash("sha256").update(text).digest("hex").slice(0, 12)}`;
+      return contentIntake.save({ id, author: turn.senderName, text, messageKey: turn.messageKey });
+    },
+  }),
+
+  content_board: tool({
+    description:
+      "Read the Jadai content board: every idea and task still in the pipeline (Idea, Aprobada, EnProduccion, Revision, Programado) with its format, account and dates, plus what was published in the last 30 days. Use it for questions like which videos are being planned, what is about to be published, what is overdue. Only works in the content group.",
+    inputSchema: z.object({}),
+    execute: async () =>
+      contentIntake.isContentChat(turn.chat)
+        ? contentIntake.readBoard()
+        : "The content board can only be read from the content group. Say so.",
   }),
 
   check_usage: tool({

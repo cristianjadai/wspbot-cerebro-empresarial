@@ -96,6 +96,23 @@ export const config = {
     return { folderId, name: optional("COMPANY_NAME") ?? "the company" };
   },
 
+  /**
+   * The content group, and the Jadai CRM endpoint that files ideas from it. Only messages the bot
+   * is tagged in are ever sent — through the `save_content` tool. All three or nothing. The chats
+   * must also be on BOT_ALLOWED_CHATS when that is set.
+   */
+  contentIntake: (): { url: string; secret: string; chats: Set<string> } | null => {
+    const url = optional("CONTENT_INGEST_URL");
+    const secret = optional("CONTENT_INGEST_SECRET");
+    const chats = optional("CONTENT_GROUP_CHATS");
+    if (!url || !secret || !chats) return null;
+    return {
+      url,
+      secret,
+      chats: new Set(chats.split(",").map((c) => c.trim()).filter(Boolean)),
+    };
+  },
+
   /** Where this app is reachable, used to build the Notion OAuth redirect. */
   appUrl: () => (optional("APP_URL") ?? "https://wspbot.crafter.run").replace(/\/$/, ""),
 
