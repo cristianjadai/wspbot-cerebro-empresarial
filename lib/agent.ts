@@ -6,6 +6,7 @@ import {
   stepCountIs,
   tool,
   type ModelMessage,
+  type SystemModelMessage,
   type UserContent,
   type TextPart,
   type FilePart,
@@ -129,7 +130,16 @@ const saveTurn = (chat: string, userText: string, assistantText: string) =>
 export const clearHistory = (chat: string): Promise<unknown[]> =>
   query("delete from messages where chat = $1", [chat]);
 
-const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
+/**
+ * Anthropic caches only what is marked. A turn is up to MAX_STEPS calls, each resending the
+ * prompt, the tools, the history and every tool result so far — a Drive answer re-sent a 30k
+ * character document on every step at full price. Cached, the repeats bill at a tenth. Five
+ * minutes, not an hour: the hour costs twice as much to write and a chat rarely comes back
+ * often enough within it to repay that.
+ */
+const CACHE = { type: "ephemeral" } as const;
+
+const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMessage[]> => {
   const has = (key: string): boolean => on.has(key);
 
   /**
@@ -302,7 +312,45 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
       : []),
   ];
 
-  return [
+  /*
+   * What changes from one message to the next — the clock, a quoted message, a picture to make
+   * a sticker from, being unprompted — is kept apart from the rest, because Anthropic caches by
+   * exact prefix. Mixed in, the time alone changed the prompt every minute and nothing before it
+   * could be reused between messages in a busy chat. Memory, tasks and the like change only when
+   * somebody edits them, so they stay in the cached part.
+   */
+  const perTurn = [
+    ...(turn.unprompted
+      ? [
+          "*Nobody has asked you anything.* You have been reading this group and are deciding whether to say something, the way a person in the room would.",
+          "",
+          "- Silence is the normal answer. Most of what people say does not need a reply from you, and a bot that comments on everything is the thing everyone mutes. If nothing you could add is worth the notification, answer with nothing at all.",
+          "- Speak when you would actually add something: an answer to a question nobody picked up, a fact you happen to know, something you were asked to remember and this is the moment for, a genuine joke that lands. Not a summary of what they just said, not a cheerful observation that they are chatting, and never a question asked only to keep talking.",
+          "- Be short. One or two lines. You are joining a conversation, not opening one.",
+          "- Write the message itself. No preamble, no framing, no explaining why you are speaking.",
+          "- Do not greet the room, do not announce yourself, and do not ask if anyone needs help.",
+          "- Answer in the language they are speaking.",
+          "- A sticker on its own is often the right move, and better than a sentence about how funny something is.",
+          "",
+        ]
+      : []),
+    ...(quoted
+      ? [
+          "They are replying to an earlier message, and it is included above their own. That is what they are pointing at — read their words as being about it. If they attached a picture to the reply, that message is quoted for you too, and any image in it is shown to you directly.",
+          "",
+        ]
+      : []),
+    ...(source
+      ? [
+          `There is ${source.animated ? "an animated GIF or video" : "an image"} here — ${turn.attachment ? "attached to their message" : "in the message they are replying to"}. \`make_sticker\` turns it into a sticker, keeping any animation, and adds it to the shared library. If they tagged you with it and did not ask for something else, a sticker is almost certainly what they want; just make it.`,
+          "",
+        ]
+      : []),
+    // Time and offset, not just the date: scheduling needs both, and a bare date invites a guess.
+    `Right now it is ${reminders.nowForPrompt()}. Work out any time from that.`,
+  ].join("\n");
+
+  const stable = [
     `You are a helpful assistant living inside a WhatsApp ${turn.isGroup ? "group chat" : "chat"}, reached by tagging you.`,
     "",
     "How to reply:",
@@ -432,36 +480,7 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
           "",
         ]
       : []),
-    ...(turn.unprompted
-      ? [
-          "*Nobody has asked you anything.* You have been reading this group and are deciding whether to say something, the way a person in the room would.",
-          "",
-          "- Silence is the normal answer. Most of what people say does not need a reply from you, and a bot that comments on everything is the thing everyone mutes. If nothing you could add is worth the notification, answer with nothing at all.",
-          "- Speak when you would actually add something: an answer to a question nobody picked up, a fact you happen to know, something you were asked to remember and this is the moment for, a genuine joke that lands. Not a summary of what they just said, not a cheerful observation that they are chatting, and never a question asked only to keep talking.",
-          "- Be short. One or two lines. You are joining a conversation, not opening one.",
-          "- Write the message itself. No preamble, no framing, no explaining why you are speaking.",
-          "- Do not greet the room, do not announce yourself, and do not ask if anyone needs help.",
-          "- Answer in the language they are speaking.",
-          "- A sticker on its own is often the right move, and better than a sentence about how funny something is.",
-          "",
-        ]
-      : []),
-    ...(quoted
-      ? [
-          "They are replying to an earlier message, and it is included above their own. That is what they are pointing at — read their words as being about it. If they attached a picture to the reply, that message is quoted for you too, and any image in it is shown to you directly.",
-          "",
-        ]
-      : []),
-    ...(source
-      ? [
-          `There is ${source.animated ? "an animated GIF or video" : "an image"} here — ${turn.attachment ? "attached to their message" : "in the message they are replying to"}. \`make_sticker\` turns it into a sticker, keeping any animation, and adds it to the shared library. If they tagged you with it and did not ask for something else, a sticker is almost certainly what they want; just make it.`,
-          "",
-        ]
-      : []),
     about(on),
-    "",
-    // Time and offset, not just the date: scheduling needs both, and a bare date invites a guess.
-    `Right now it is ${reminders.nowForPrompt()}. Work out any time from that.`,
     "",
     ...(has("reminders") ? ["Scheduled in this chat:", reminders.render(scheduled), ""] : []),
     ...(has("tasks")
@@ -472,6 +491,13 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<string> => {
       ? ["Sticker library (shared by every chat):", stickerList]
       : []),
   ].join("\n");
+
+  return [
+    // Tools and this block are the same on every step of a turn and, within 5 minutes, on the
+    // next message in the same chat. OpenAI ignores the marker and caches on its own.
+    { role: "system", content: stable, providerOptions: { anthropic: { cacheControl: CACHE } } },
+    { role: "system", content: perTurn },
+  ];
 };
 
 /**
@@ -2026,7 +2052,14 @@ export const reply = async (turn: Turn): Promise<Reply> => {
         textVerbosity: "low",
       },
       // Each provider reads only its own key, so both can sit here whichever one runs.
-      anthropic: { effort: claudeEffort(config.effort()) },
+      anthropic: {
+        effort: claudeEffort(config.effort()),
+        /*
+         * Automatic caching: the breakpoint rides on the last block of every request, so each
+         * step reads the history and the tool results the previous step already paid for.
+         */
+        cacheControl: CACHE,
+      },
     },
   });
 

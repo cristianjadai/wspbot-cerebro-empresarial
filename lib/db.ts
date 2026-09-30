@@ -124,6 +124,8 @@ const migrate = async (): Promise<void> => {
       chat           text
     );
     create index if not exists model_usage_at_idx on model_usage (at desc);
+    -- Its own statement: the create above is a no-op on the live table.
+    alter table model_usage add column if not exists cache_write_tokens integer not null default 0;
 
     /*
      * One Notion connection per chat. Keyed on the chat rather than the person because the bot

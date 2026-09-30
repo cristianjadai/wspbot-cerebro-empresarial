@@ -22,7 +22,7 @@ const SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const FOLDER = "application/vnd.google-apps.folder";
 
 /** What one read hands the model. A long manual is paged rather than dumped into one turn. */
-const PAGE_CHARS = 30_000;
+const PAGE_CHARS = 12_000;
 /** Downloads past this are refused: a PDF that large is a scan, and its text is not worth it. */
 const MAX_BYTES = 25 * 1024 * 1024;
 /** How long the folder tree is trusted before being walked again. */

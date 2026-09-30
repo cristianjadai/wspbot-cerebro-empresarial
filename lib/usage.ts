@@ -24,7 +24,9 @@ export type Kind = "reply" | "vision" | "speech" | "image" | "summary" | "leader
 type AnyUsage = {
   inputTokens?: number | undefined;
   outputTokens?: number | undefined;
-  inputTokenDetails?: { cacheReadTokens?: number | undefined } | undefined;
+  inputTokenDetails?:
+    | { cacheReadTokens?: number | undefined; cacheWriteTokens?: number | undefined }
+    | undefined;
 };
 
 /** USD per million tokens. Published rates as of 2026-07-30; override with env if they move. */
@@ -62,14 +64,16 @@ export const record = async (entry: {
 }): Promise<void> => {
   try {
     await query(
-      `insert into model_usage (kind, model, input_tokens, output_tokens, cached_tokens, characters, chat)
-       values ($1, $2, $3, $4, $5, $6, $7)`,
+      `insert into model_usage
+         (kind, model, input_tokens, output_tokens, cached_tokens, cache_write_tokens, characters, chat)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         entry.kind,
         entry.model,
         entry.usage?.inputTokens ?? 0,
         entry.usage?.outputTokens ?? 0,
         entry.usage?.inputTokenDetails?.cacheReadTokens ?? 0,
+        entry.usage?.inputTokenDetails?.cacheWriteTokens ?? 0,
         entry.characters ?? 0,
         entry.chat ?? null,
       ],
@@ -98,6 +102,7 @@ type Row = {
   input_tokens: string;
   output_tokens: string;
   cached_tokens: string;
+  cache_write_tokens: string;
   characters: string;
 };
 
@@ -114,6 +119,7 @@ const totalsSince = async (interval: string): Promise<Totals> => {
             sum(input_tokens)::text   as input_tokens,
             sum(output_tokens)::text  as output_tokens,
             sum(cached_tokens)::text  as cached_tokens,
+            sum(cache_write_tokens)::text as cache_write_tokens,
             sum(characters)::text     as characters
        from model_usage
       where at > now() - $1::interval
@@ -149,12 +155,22 @@ const totalsSince = async (interval: string): Promise<Totals> => {
     const output = Number(row.output_tokens ?? 0);
     totals.inputTokens += input;
     totals.outputTokens += output;
-    totals.cachedTokens += Number(row.cached_tokens ?? 0);
+    const read = Number(row.cached_tokens ?? 0);
+    const written = Number(row.cache_write_tokens ?? 0);
+    totals.cachedTokens += read;
 
     const rate = rateFor(row.model);
     if (!rate && input + output > 0) priced = false;
     if (rate && totals.estimatedUsd !== null) {
-      totals.estimatedUsd += (input / 1e6) * rate.input + (output / 1e6) * rate.output;
+      /*
+       * `input` is the total, cache included. Claude bills a cache read at a tenth and a
+       * (five-minute) write at 1.25x, so pricing it all at the base rate overstated a cached
+       * turn several times over. Other providers keep the old, conservative sum.
+       */
+      const billedInput = row.model.startsWith("claude-")
+        ? input - read - written + read * 0.1 + written * 1.25
+        : input;
+      totals.estimatedUsd += (billedInput / 1e6) * rate.input + (output / 1e6) * rate.output;
     }
   }
 
