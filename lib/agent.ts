@@ -59,10 +59,10 @@ import type { Media, Quoted } from "./mentions";
  * Steps, not tokens: one step is a model call, so this bounds a search-then-send-then-answer
  * chain rather than the answer's length.
  */
-const MAX_STEPS = 10;
+const MAX_STEPS = 6;
 
 /** Turns of conversation replayed per chat. Enough for follow-ups without a runaway prompt. */
-const HISTORY_TURNS = 20;
+const HISTORY_TURNS = 8;
 
 /** OpenAI's current small TTS model; overridable for the same reason as the chat model. */
 const SPEECH_MODEL = "gpt-4o-mini-tts";
