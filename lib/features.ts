@@ -280,6 +280,15 @@ export const FEATURES: Feature[] = [
     needs: "content",
   },
   {
+    key: "crm",
+    title: "Answers from the CRM",
+    detail:
+      "In the CRM chats (CRM_CHATS, or the content group), ask about outreach and deals — the funnel by stage and account, who replied, which deals are in negotiation or overdue, a person's history — and it answers from the live Jadai CRM. Tag it with someone's details and it adds them to outreach as Target.",
+    claim: "answer questions about outreach, deals and clients from the Jadai CRM, and add people to it",
+    tools: ["crm_overview", "crm_find_person", "crm_add_person"],
+    needs: "content",
+  },
+  {
     key: "usage_report",
     title: "Reports its usage",
     detail: "Tokens and estimated spend for today, the last week and all time.",

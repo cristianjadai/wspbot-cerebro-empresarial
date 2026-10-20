@@ -30,6 +30,7 @@ import * as features from "./features";
 import * as summaries from "./summaries";
 import * as chime from "./chime";
 import * as contentIntake from "./content-intake";
+import * as crm from "./crm";
 import * as github from "./github";
 import * as stickerSite from "./sticker-site";
 import * as supporters from "./supporters";
@@ -161,6 +162,8 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
   const recorded = recordedForDigest || recordedForChime;
   /** The content group: where ideas and tasks can be filed on, and read from, the CRM board. */
   const contentChat = has("content_intake") && contentIntake.isContentChat(turn.chat);
+  /** Where outreach, deals and clients can be read from, and people added to, the CRM. */
+  const crmChat = has("crm") && crm.isCrmChat(turn.chat);
   const quoted = has("quoted") ? turn.quoted : undefined;
   const source = has("stickers_make") ? stickerSource(turn) : undefined;
 
@@ -293,6 +296,13 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
       ? [
           "- `save_content` files an idea or a task on the Jadai content board (kanban and calendar in the CRM). Call it when someone tags you with a content idea or task, or tags you in a reply to a message that has one — pass the idea in their words, including the quoted message's text when that is what they point at, plus any date, format or account they mention. One call per idea. You only ever file what you are tagged with; never file other messages from the chat.",
           "- `content_board` reads the Jadai content board: ideas, tasks, what is in production and what is scheduled to publish. Call it whenever someone asks what is planned, which videos or posts are coming, what is pending or overdue — the board changes, so call it again rather than reusing an earlier answer. Answer only what was asked (e.g. only videos, only this week), grouped the way the question implies, in the chat's language.",
+        ]
+      : []),
+    ...(crmChat
+      ? [
+          "- `crm_overview` reads the live Jadai CRM: the outreach funnel by stage and account, recently added prospects, those in DM/replied/in-conversation, every open deal with stage, value, next action and deadline, deals closed in the last 60 days, and clients with their health. Call it for any question about leads, outreach, the pipeline, deals or clients, and for insights (what is stuck, what is overdue, who to follow up, how each account is doing) — the CRM changes, so call it again rather than reusing an earlier answer. Work the figures out from the data; never invent a lead, deal or number that is not in it.",
+          "- `crm_find_person` looks one person or company up by name, company, email or phone: their stage, notes, deals, recent interactions and last messages. Use it when someone asks about a specific person or company.",
+          "- `crm_add_person` adds someone to outreach as Target. Call it only when someone tags you asking to add a person; pass only the details they gave. A name is required — ask for it if missing. The account is whoever they say it is for, otherwise leave it out.",
         ]
       : []),
     ...(has("usage_report")
@@ -1807,6 +1817,46 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
       contentIntake.isContentChat(turn.chat)
         ? contentIntake.readBoard()
         : "The content board can only be read from the content group. Say so.",
+  }),
+
+  crm_overview: tool({
+    description:
+      "Read the live Jadai CRM: outreach funnel by stage and account, recent and advanced prospects, open deals (stage, value, next action, deadline, overdue), deals closed in the last 60 days, and clients with their health. Use it for any question or insight about leads, outreach, deals or clients. Only works in the CRM chats.",
+    inputSchema: z.object({}),
+    execute: async () =>
+      crm.isCrmChat(turn.chat) ? crm.overview() : "The CRM can only be read from the CRM chats. Say so.",
+  }),
+
+  crm_find_person: tool({
+    description:
+      "Look a person or company up in the Jadai CRM by name, company, email or phone. Returns their stage, notes, deals, recent interactions and last messages. Only works in the CRM chats.",
+    inputSchema: z.object({
+      query: z.string().min(2).describe("A name, company, email or phone — one term works best."),
+    }),
+    execute: async ({ query }) =>
+      crm.isCrmChat(turn.chat) ? crm.find(query) : "The CRM can only be read from the CRM chats. Say so.",
+  }),
+
+  crm_add_person: tool({
+    description:
+      "Add a person to outreach in the Jadai CRM as Target. Pass only what you were told. If they are already there, nothing is added. Only works in the CRM chats.",
+    inputSchema: z.object({
+      nombre: z.string().min(1),
+      empresa: z.string().optional(),
+      cargo: z.string().optional(),
+      linkedinUrl: z.string().optional(),
+      correo: z.string().optional(),
+      telefono: z.string().optional(),
+      notas: z.string().optional().describe("Anything else they said about the person."),
+      cuenta: z
+        .enum(["Cristian", "Jandony", "Eduardo", "Abrahan"])
+        .optional()
+        .describe("Whose outreach this person belongs to, only if they said."),
+    }),
+    execute: async (person) =>
+      crm.isCrmChat(turn.chat)
+        ? crm.add(person, turn.senderName)
+        : "People can only be added to the CRM from the CRM chats. Say so.",
   }),
 
   check_usage: tool({

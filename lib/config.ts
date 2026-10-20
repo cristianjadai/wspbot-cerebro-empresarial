@@ -113,6 +113,22 @@ export const config = {
     };
   },
 
+  /**
+   * The Jadai CRM's outreach, deals and clients, behind the same URL and secret as the content
+   * board. CRM_CHATS (comma-separated group JIDs) says which chats may see it — pipeline data is
+   * not for every group — and falls back to the content group.
+   */
+  crm: (): { url: string; secret: string; chats: Set<string> } | null => {
+    const intake = config.contentIntake();
+    if (!intake) return null;
+    const chats = optional("CRM_CHATS");
+    return {
+      url: intake.url,
+      secret: intake.secret,
+      chats: chats ? new Set(chats.split(",").map((c) => c.trim()).filter(Boolean)) : intake.chats,
+    };
+  },
+
   /** Where this app is reachable, used to build the Notion OAuth redirect. */
   appUrl: () => (optional("APP_URL") ?? "https://wspbot.crafter.run").replace(/\/$/, ""),
 
