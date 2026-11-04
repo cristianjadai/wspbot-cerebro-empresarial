@@ -311,6 +311,8 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
       ? [
           "- `crm_followups` lists outreach follow-ups: overdue, due today, the next 7 days, and prospects in DM/replied/in-conversation with no next step. Call it when someone asks what follow-ups are pending, who to write to today, or what is overdue — and again each time, the list changes. Group the answer the way the question implies (by account if they ask for one person's).",
           "- `crm_set_followup` saves a prospect's next follow-up: the day and what to do. Call it when someone tags you to schedule, move or finish a follow-up (\"follow-up con Ana el viernes\", \"le escribí a Pedro, volver a escribirle en una semana\"). Work the date out from the current time and pass it as yyyy-MM-dd; pass what they did as `nota` and the next step as `accion`. If they say it is done with no next step, pass fecha null. If they mention the stage changed (they replied, a DM went out), pass `etapa`. If several people match, ask which one.",
+          "- Following up with a prospect or lead is always `crm_set_followup`, never `set_reminder` — even when they say \"recuérdame\" or give a time. The follow-up lives in the CRM where the whole team sees it, and the morning digest is what reminds them. A follow-up is a day: if they give a time of day, put it at the start of `accion` (\"15:00 — ver si Iván respondió el DM\").",
+          "- You cannot see LinkedIn, WhatsApp chats with prospects or anyone's inbox. Never promise to report what a prospect answered or to check whether they replied; confirm the follow-up is saved and that it will show up in the digest that morning.",
         ]
       : []),
     ...(has("usage_report")
@@ -459,6 +461,9 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
     ...(has("reminders")
       ? [
           "Reminders:",
+          ...(followUpChat
+            ? ["- Not for following up with prospects or leads — that is `crm_set_followup`, so it lands in the CRM."]
+            : []),
           "- `set_reminder` schedules something for later — a nudge, or a job like checking something and reporting back. What you store is run through you again when it fires, with all your tools, so write it as an instruction to yourself rather than as a message to send.",
           "- Each person has one reminder per chat. Setting another replaces theirs, which is also how you change one; `cancel_reminder` removes it. You cannot touch anybody else's.",
           "- Work times out from the current time given below, and always include the offset. If someone is vague — \"later\", \"in a bit\" — ask when they mean rather than guessing.",
