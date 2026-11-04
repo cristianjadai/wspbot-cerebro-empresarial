@@ -164,6 +164,8 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
   const contentChat = has("content_intake") && contentIntake.isContentChat(turn.chat);
   /** Where outreach, deals and clients can be read from, and people added to, the CRM. */
   const crmChat = has("crm") && crm.isCrmChat(turn.chat);
+  /** Same chats as the CRM; its own switch so the morning digest can be turned off with it. */
+  const followUpChat = has("crm_followups") && crm.isCrmChat(turn.chat);
   const quoted = has("quoted") ? turn.quoted : undefined;
   const source = has("stickers_make") ? stickerSource(turn) : undefined;
 
@@ -303,6 +305,12 @@ const systemPrompt = async (turn: Turn, on: Set<string>): Promise<SystemModelMes
           "- `crm_overview` reads the live Jadai CRM: the outreach funnel by stage and account, recently added prospects, those in DM/replied/in-conversation, every open deal with stage, value, next action and deadline, deals closed in the last 60 days, and clients with their health. Call it for any question about leads, outreach, the pipeline, deals or clients, and for insights (what is stuck, what is overdue, who to follow up, how each account is doing) — the CRM changes, so call it again rather than reusing an earlier answer. Work the figures out from the data; never invent a lead, deal or number that is not in it.",
           "- `crm_find_person` looks one person or company up by name, company, email or phone: their stage, notes, deals, recent interactions and last messages. Use it when someone asks about a specific person or company.",
           "- `crm_add_person` adds someone to outreach as Target. Call it only when someone tags you asking to add a person; pass only the details they gave. A name is required — ask for it if missing. The account is whoever they say it is for, otherwise leave it out.",
+        ]
+      : []),
+    ...(followUpChat
+      ? [
+          "- `crm_followups` lists outreach follow-ups: overdue, due today, the next 7 days, and prospects in DM/replied/in-conversation with no next step. Call it when someone asks what follow-ups are pending, who to write to today, or what is overdue — and again each time, the list changes. Group the answer the way the question implies (by account if they ask for one person's).",
+          "- `crm_set_followup` saves a prospect's next follow-up: the day and what to do. Call it when someone tags you to schedule, move or finish a follow-up (\"follow-up con Ana el viernes\", \"le escribí a Pedro, volver a escribirle en una semana\"). Work the date out from the current time and pass it as yyyy-MM-dd; pass what they did as `nota` and the next step as `accion`. If they say it is done with no next step, pass fecha null. If they mention the stage changed (they replied, a DM went out), pass `etapa`. If several people match, ask which one.",
         ]
       : []),
     ...(has("usage_report")
@@ -1857,6 +1865,38 @@ const toolsFor = (turn: Turn, sent: string[]) => ({
       crm.isCrmChat(turn.chat)
         ? crm.add(person, turn.senderName)
         : "People can only be added to the CRM from the CRM chats. Say so.",
+  }),
+
+  crm_followups: tool({
+    description:
+      "List outreach follow-ups from the Jadai CRM: overdue, due today, next 7 days, and advanced prospects with no next step. Only works in the CRM chats.",
+    inputSchema: z.object({}),
+    execute: async () =>
+      crm.isCrmChat(turn.chat) ? crm.followUps() : "Follow-ups can only be read from the CRM chats. Say so.",
+  }),
+
+  crm_set_followup: tool({
+    description:
+      "Set, move or clear a prospect's next outreach follow-up in the Jadai CRM: the day, the next step, and optionally a note on what was done and a stage change. Only works in the CRM chats.",
+    inputSchema: z.object({
+      id: z.string().optional().describe("The prospect's CRM id, when several people matched before."),
+      nombre: z.string().optional().describe("The prospect's name as they said it."),
+      empresa: z.string().optional().describe("Their company, to tell two people of the same name apart."),
+      fecha: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .nullable()
+        .describe("Day of the next follow-up, yyyy-MM-dd, today or later. null clears it (done, nothing more to chase)."),
+      accion: z.string().optional().describe("The next step: what to do on that day."),
+      nota: z.string().optional().describe("What was just done, in their words, if they said."),
+      etapa: z.enum(crm.STAGES).optional().describe("The new outreach stage, only if they said it changed."),
+    }),
+    execute: async (update) =>
+      crm.isCrmChat(turn.chat)
+        ? update.id || update.nombre
+          ? crm.setFollowUp(update, turn.senderName)
+          : "Ask who the follow-up is for — a name is needed."
+        : "Follow-ups can only be saved from the CRM chats. Say so.",
   }),
 
   check_usage: tool({

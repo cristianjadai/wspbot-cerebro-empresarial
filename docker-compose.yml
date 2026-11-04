@@ -18,6 +18,8 @@ services:
       CONTENT_GROUP_CHATS: ${CONTENT_GROUP_CHATS}
       # Optional: which chats may read the CRM's outreach and deals. Falls back to the content group.
       CRM_CHATS: ${CRM_CHATS}
+      FOLLOWUP_CHATS: ${FOLLOWUP_CHATS}
+      FOLLOWUP_CRON: ${FOLLOWUP_CRON}
       BOT_MODEL: ${BOT_MODEL}
       BOT_EFFORT: ${BOT_EFFORT}
       DATABASE_URL: ${DATABASE_URL}

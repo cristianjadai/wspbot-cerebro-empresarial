@@ -35,8 +35,8 @@ bot   → Done.
 |  |  |
 | --- | --- |
 | **What it is** | One Next.js container: a webhook that answers WhatsApp, and a dashboard that decides what it may do |
-| **Abilities** | 28 switchable features over 57 model tools, plus 3 that are always on |
-| **Storage** | Postgres, 25 tables — memory, history, stickers, schedules, supporters, roadmap, spend |
+| **Abilities** | 29 switchable features over 59 model tools, plus 3 that are always on |
+| **Storage** | Postgres, 26 tables — memory, history, stickers, schedules, supporters, roadmap, spend |
 | **Runs on** | A Dokploy VPS behind Traefik, alongside the WhatsApp gateway it talks to |
 | **Guarded by** | 19 check scripts that exercise the real thing rather than asserting about it |
 

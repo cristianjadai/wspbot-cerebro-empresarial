@@ -62,7 +62,9 @@ lib/leaderboard-runner.ts        fires it, without the model — the sentence is
 lib/summaries.ts                 scheduled digests: schedules, the log, the transcript
 lib/summary-recorder.ts          writing down a recorded group; lib/summary-runner.ts fires it
 lib/content-intake.ts            the Jadai CRM content board: file a tagged idea, read the board
-lib/crm.ts                       the Jadai CRM's outreach and deals: snapshot, person lookup, add
+lib/crm.ts                       the Jadai CRM's outreach and deals: snapshot, person lookup, add,
+                                 follow-ups (save, list, the morning digest's text)
+lib/followup-runner.ts           sends that digest to FOLLOWUP_CHATS, without the model
 lib/cron.ts                      five-field cron, evaluated as "does this minute match?"
 lib/usage.ts                     token accounting, cost estimate
 ```

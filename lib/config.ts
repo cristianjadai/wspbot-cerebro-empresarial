@@ -129,6 +129,22 @@ export const config = {
     };
   },
 
+  /**
+   * The outreach follow-up digest: which groups get it (FOLLOWUP_CHATS, comma-separated JIDs —
+   * the founders group) and when (FOLLOWUP_CRON, five-field, in BOT_TIMEZONE; weekday mornings by
+   * default). Off without FOLLOWUP_CHATS or without the CRM. The chats must also be on CRM_CHATS
+   * for the follow-up tools to work there.
+   */
+  followUps: (): { chats: string[]; cron: string } | null => {
+    if (!config.crm()) return null;
+    const chats = optional("FOLLOWUP_CHATS");
+    if (!chats) return null;
+    return {
+      chats: chats.split(",").map((c) => c.trim()).filter(Boolean),
+      cron: optional("FOLLOWUP_CRON") ?? "30 8 * * 1-5",
+    };
+  },
+
   /** Where this app is reachable, used to build the Notion OAuth redirect. */
   appUrl: () => (optional("APP_URL") ?? "https://wspbot.crafter.run").replace(/\/$/, ""),
 

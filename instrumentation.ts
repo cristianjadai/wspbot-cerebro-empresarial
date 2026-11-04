@@ -23,4 +23,7 @@ export async function register() {
 
   const { startLeaderboard } = await import("./lib/leaderboard-runner");
   startLeaderboard();
+
+  const { startFollowUps } = await import("./lib/followup-runner");
+  startFollowUps();
 }

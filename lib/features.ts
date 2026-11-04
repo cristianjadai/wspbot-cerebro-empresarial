@@ -289,6 +289,15 @@ export const FEATURES: Feature[] = [
     needs: "content",
   },
   {
+    key: "crm_followups",
+    title: "Tracks outreach follow-ups",
+    detail:
+      "In the CRM chats, tag it with a follow-up — “follow-up con Ana el viernes, mandarle el caso” — and it saves the date and next step on that prospect in the Jadai CRM; ask it what is due and it lists overdue, today's and this week's. With FOLLOWUP_CHATS set it also sends those groups a morning digest (FOLLOWUP_CRON, weekdays 8:30 by default), and nothing on a day with nothing due.",
+    claim: "save and list outreach follow-ups in the Jadai CRM, and send a morning digest of what is due",
+    tools: ["crm_followups", "crm_set_followup"],
+    needs: "content",
+  },
+  {
     key: "usage_report",
     title: "Reports its usage",
     detail: "Tokens and estimated spend for today, the last week and all time.",

@@ -581,6 +581,18 @@ const migrate = async (): Promise<void> => {
     alter table leaderboard_watch add column if not exists note          text;
     alter table leaderboard_watch add column if not exists recent_cheers text;
 
+    /*
+     * Outreach follow-up digests already sent, one row per group per firing minute. The insert
+     * is the claim: a restart or a second container landing on the same minute cannot send the
+     * founders the same list twice.
+     */
+    create table if not exists followup_digests (
+      chat       text        not null,
+      minute_key text        not null,
+      sent_at    timestamptz not null default now(),
+      primary key (chat, minute_key)
+    );
+
     create table if not exists notion_connections (
       chat           text primary key,
       access_token   text        not null,
