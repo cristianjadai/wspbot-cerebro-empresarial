@@ -254,7 +254,7 @@ export const config = {
   timezone: () => optional("BOT_TIMEZONE") ?? "UTC",
 
   /**
-   * Calls one person may make per minute before being turned away. Per-person overrides live in
+   * Calls one person may make per 10-second window before being turned away. Per-person overrides live in
    * the `rate_limits` table; this is only the fallback for anyone not listed there.
    */
   defaultRateLimit: () => {
@@ -263,7 +263,7 @@ export const config = {
   },
 
   /**
-   * What a supporter is allowed per minute. Applied by `lib/rate-limit.ts` to anyone on the
+   * What a supporter is allowed per 10-second window. Applied by `lib/rate-limit.ts` to anyone on the
    * supporters list with a tied handle, unless they have a row of their own. Never lowers
    * anybody: if it is set below the default, the default wins.
    */

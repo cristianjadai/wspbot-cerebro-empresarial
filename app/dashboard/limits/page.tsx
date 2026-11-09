@@ -31,7 +31,7 @@ export default async function LimitsPage() {
   return (
     <>
       <p className="lede">
-        Counted per person, not per chat, on a sliding one-minute window — so nobody can use up a
+        Counted per person, not per chat, on a sliding 10-second window — so nobody can use up a
         group&apos;s allowance, and nobody gets a fresh allowance by waiting for the clock to
         tick over. Someone over their limit is told once per window and never reaches the model.
       </p>
@@ -42,7 +42,7 @@ export default async function LimitsPage() {
           <div className="row">
             <dt>Everyone without a row below</dt>
             <dd>
-              {config.defaultRateLimit()} per minute
+              {config.defaultRateLimit()} per 10 seconds
             </dd>
           </div>
         </dl>
@@ -87,7 +87,7 @@ export default async function LimitsPage() {
                     name="perMinute"
                     min={1}
                     defaultValue={q.perMinute}
-                    aria-label={`Messages per minute for ${shortJid(q.userId)}`}
+                    aria-label={`Messages per 10 seconds for ${shortJid(q.userId)}`}
                   />
                   <input
                     type="text"
@@ -134,7 +134,7 @@ export default async function LimitsPage() {
             name="perMinute"
             min={1}
             defaultValue={config.defaultRateLimit()}
-            aria-label="Messages per minute"
+            aria-label="Messages per 10 seconds"
             required
           />
           <input type="text" name="note" placeholder="note (optional)" aria-label="Note" />

@@ -1032,14 +1032,14 @@ The page lists all of it, so "everything moved" and "everything I chose moved" c
 
 ## Rate limiting
 
-One person may set the bot working **once a minute** by default. Over that, they get a short
-refusal — *"You exceeded the limit of 1 message per minute. Wait 43 seconds."* — and the model is
+One person may set the bot working **once every 10 seconds** by default. Over that, they get a short
+refusal — *"You exceeded the limit of 1 message every 10 seconds. Wait 7 seconds."* — and the model is
 never called. The check runs after "is this for me?" and before anything that costs money, which
 is the whole point of it.
 
 A **sliding window**, not fixed buckets: with buckets someone can spend their whole allowance at
 11:59:59 and again at 12:00:00 and never be stopped. The wait is exact rather than a rounded
-minute — it is when the quota-th most recent call leaves the window.
+window — it is when the quota-th most recent call leaves the window.
 
 **They are told once per window**, not once per message. Ten messages get one refusal; otherwise
 the limiter becomes worse spam than the thing it is limiting.
@@ -1051,7 +1051,7 @@ permanently full and never recover.
 tool for it — a bot that raises your limit because you asked nicely is not a rate limiter.
 
 ```sql
--- Ten a minute for one person. The key is the phone number or LID without the device suffix.
+-- Ten per 10-second window for one person (the column is named per_minute for history). The key is the phone number or LID without the device suffix.
 insert into rate_limits (user_id, per_minute, note) values ('51922471582', 10, 'me')
   on conflict (user_id) do update set per_minute = excluded.per_minute, updated_at = now();
 
@@ -1369,7 +1369,7 @@ from the list takes their weight out with them.
 Counts are public on the landing page; **who voted for what never is.** Naming that would turn a
 small group's preferences into a public record.
 
-Supporters also get a higher rate limit — `BOT_SUPPORTER_RATE_LIMIT`, five a minute by default.
+Supporters also get a higher rate limit — `BOT_SUPPORTER_RATE_LIMIT`, five per 10-second window by default.
 It is computed rather than stored, so removing somebody reverses it; an explicit row on
 `/dashboard/limits` still overrides.
 

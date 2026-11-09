@@ -8,7 +8,7 @@ import * as supporters from "./supporters";
  *
  * Checked before anything expensive happens — before the model, before web search, before any
  * media work — because the whole point is to not spend money on the eleventh message in a
- * minute. It runs on two small indexed queries.
+ * window. It runs on two small indexed queries.
  *
  * A sliding window rather than fixed buckets: with buckets, someone can send their whole
  * allowance at 11:59:59 and again at 12:00:00 and never be stopped.
@@ -28,7 +28,9 @@ export type Decision =
       shouldReply: boolean;
     };
 
-const WINDOW = "1 minute";
+/** The window a quota is counted over. `per_minute` in the table is really "per window". */
+const WINDOW = "10 seconds";
+const WINDOW_SECONDS = 10;
 
 /**
  * A person's allowance: their own row, then the supporter perk, then the deployment default.
@@ -111,7 +113,7 @@ export const check = async (userId: string, chat: string): Promise<Decision> => 
 
   return {
     allowed: false,
-    waitSeconds: wait?.wait_seconds ?? 60,
+    waitSeconds: wait?.wait_seconds ?? WINDOW_SECONDS,
     quota,
     shouldReply,
   };
@@ -119,7 +121,7 @@ export const check = async (userId: string, chat: string): Promise<Decision> => 
 
 /** The wording someone actually sees. Fixed text: no model call happens on a refusal. */
 export const refusalMessage = (decision: Extract<Decision, { allowed: false }>): string =>
-  `You exceeded the limit of ${decision.quota} message${decision.quota === 1 ? "" : "s"} per minute. ` +
+  `You exceeded the limit of ${decision.quota} message${decision.quota === 1 ? "" : "s"} every ${WINDOW_SECONDS} seconds. ` +
   `Wait ${decision.waitSeconds} second${decision.waitSeconds === 1 ? "" : "s"}.`;
 
 export type Quota = {
