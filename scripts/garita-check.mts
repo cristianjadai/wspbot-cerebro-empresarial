@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { availableIn, consult, sendMyQr, reservations } from "../lib/garita";
+import { availableIn, consult, sendMyQr, reservations, quickVisit } from "../lib/garita";
 
 process.env.GARITA_ENABLED = "true";
 process.env.GARITA_PROXY_URL = "http://garita-session.railway.internal:8097";
@@ -96,3 +96,21 @@ try {
   assert.equal(JSON.stringify(await reservations(turn, { accion: "crear" })).includes("internal-secret"), false);
 } finally { globalThis.fetch = originalFetch; }
 console.log("PASS: reservation confirmation text comes from the current webhook turn and connection errors remain private");
+
+globalThis.fetch = async (url, init) => {
+  assert.equal(url, "http://garita-session.railway.internal:8097/agent/visita-rapida");
+  const data = JSON.parse(init!.body as string);
+  assert.equal(data.chat_id, turn.chat);
+  assert.equal(data.solicitante, turn.userId);
+  assert.equal(data.message_id, "MSG1");
+  assert.equal(data.texto_solicitud, "genera pedidos ya");
+  assert.equal(data.servicio, "PEDIDOSYA");
+  assert.equal("placa" in data, false);
+  assert.equal("identificacion" in data, false);
+  return Response.json({ ok: true, backend_verificado: true, codigo_ingreso: "1234P" });
+};
+try {
+  const result = await quickVisit({ ...turn, text: "genera pedidos ya" }, { servicio: "PEDIDOSYA" });
+  assert.equal((result as { backend_verificado: boolean }).backend_verificado, true);
+} finally { globalThis.fetch = originalFetch; }
+console.log("PASS: PedidosYa uses trusted group context and requires no plate or identification");

@@ -83,6 +83,33 @@ export const consult = async (
 };
 
 const preparedSchema = z.object({ job_id: z.string().regex(/^[a-f0-9]{64}$/), png_base64: z.string().min(1).max(200_000), active: z.literal(false) });
+export const quickVisitSchema = z.object({
+  servicio: z.enum(["PEDIDOSYA", "RAPPI", "DELIVERY"]),
+  nombre: z.string().min(1).max(100).optional(),
+  motivo: z.string().min(3).max(200).optional(),
+  identificacion: z.string().max(30).optional(),
+  placa: z.string().max(15).optional(),
+  color: z.string().max(100).optional(),
+});
+
+export const quickVisit = async (turn: Context, input: z.infer<typeof quickVisitSchema>): Promise<unknown> => {
+  if (!availableIn(turn)) return { ok: false, error: "Las visitas rápidas solo se permiten desde el grupo Jadai autorizado." };
+  try {
+    const response = await fetch(`${process.env.GARITA_PROXY_URL}/agent/visita-rapida`, {
+      method: "POST", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(60_000),
+      headers: { "content-type": "application/json", "x-api-key": process.env.GARITA_API_KEY! },
+      body: JSON.stringify({ ...quickVisitSchema.parse(input), chat_id: turn.chat, solicitante: turn.userId,
+        message_id: turn.messageKey!.id, texto_solicitud: turn.text ?? "" }),
+    });
+    if (!response.ok) {
+      const error = z.object({ detail: z.string().max(600) }).safeParse(await response.json());
+      return { ok: false, error: error.success ? error.data.detail : "No se confirmó la invitación. Revisa las visitas antes de repetir." };
+    }
+    return await response.json();
+  } catch {
+    return { ok: false, error: "No se confirmó el resultado de la visita rápida. Consulta tus visitas antes de volver a crearla." };
+  }
+};
 const activeSchema = z.object({ active: z.literal(true), expires_at: z.number(), ttl_seconds: z.literal(10) });
 
 /** Upload while inactive; activate last so media processing does not consume the QR lifetime. */

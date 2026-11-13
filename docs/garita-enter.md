@@ -4,7 +4,7 @@ La función `garita` conecta Cerebro con `http://garita-session.railway.internal
 El servicio permanece privado, conserva su volumen y renueva la misma sesión de ENTER.
 No se envían tokens de ENTER al modelo ni a WhatsApp.
 
-Solo se ofrece `garita_consultar` cuando el mensaje viene del grupo exacto configurado en
+Las herramientas de ENTER solo se ofrecen cuando el mensaje viene del grupo exacto configurado en
 `GARITA_GROUP_ID`, tiene autor e ID de mensaje y no es una intervención autónoma. La identidad
 del grupo, autor y mensaje se toma del webhook, no de argumentos del modelo. El proxy comprueba
 otra vez el grupo y la whitelist opcional de autores, y audita cada consulta.
@@ -37,8 +37,9 @@ exigen otra preparación. La cancelación valida propiedad, estado y vigencia; c
 sin borrar la fila. Las reservas pendientes de pago se pagan en ENTER; las pendientes de
 aprobación requieren administración. No se realizan cobros, reembolsos ni avisos a terceros.
 Un resultado SQL incierto solo se concilia: nunca se repite una inserción a ciegas. La app puede
-seguir operando sobre esas mismas filas. Invitaciones para visitantes y pases permanentes siguen
-sin habilitarse; estos últimos requieren confirmación explícita.
+seguir operando sobre esas mismas filas. Las invitaciones generales de visitante y los pases permanentes siguen sin habilitarse;
+PedidosYa/delivery sí se permite por el flujo separado de visita rápida. Los permanentes
+requieren confirmación explícita.
 
 `garita_mi_qr` es una operación separada y requiere petición explícita del hablante actual y
 una placa. No reutiliza peticiones citadas ni recordatorios. Prepara el PNG sin crear un acceso,
@@ -61,3 +62,19 @@ No usar `NEXT_PUBLIC_` para estas variables. Configurar variables antes del desp
 Validación: `npm run garita-check`, `npm run features-check`, `npm run smoke` y `npm run build`.
 El proxy tiene pruebas de autenticación, grupo, whitelist, aislamiento del residente, filtrado
 de datos y bloqueo de escrituras. No se envían mensajes de verificación a WhatsApp.
+
+## PedidosYa y visitas rápidas
+
+«Genera una invitación para PedidosYa» llama `garita_visita_rapida` con servicio PEDIDOSYA.
+No exige placa, identificación ni nombre personal del repartidor. Si no se suministran,
+se usa PEDIDOSYA como nombre y ENTREGA DE PEDIDOSYA como motivo. No inventar datos.
+También admite RAPPI y DELIVERY cuando corresponda a la solicitud actual.
+
+El endpoint privado `/agent/visita-rapida` revalida grupo, whitelist, sesión/dispositivo y
+permisos de visitas/alícuota/financiero. Usa `AGENT_QUICK_ENABLED=true`. Conserva un journal
+privado antes de los PUT y verifica ambas copias en ENTER antes de devolver codigo_ingreso.
+Es un código nativo de visita rápida, no un QR. No hay aviso MQTT a garita ni pase permanente.
+No se promete caducidad fija. Solicitudes repetidas del mismo autor dentro de 60 segundos
+reutilizan el mismo código verificado; «otra/nueva» en el mensaje actual solicita una distinta.
+Un resultado incierto se concilia sin repetir escrituras; una creación parcial propia se
+retira condicionalmente por ETag, sin tocar registros ajenos. Un código utilizado no se reactiva.
