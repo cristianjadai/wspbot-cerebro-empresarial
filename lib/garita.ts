@@ -100,21 +100,33 @@ export const sendMyQr = async (turn: Context, placa: string, sent: string[], mes
     return response.json();
   };
   let delivered = false;
+  let stage: "prepare" | "upload" | "activate" | "send" = "prepare";
   try {
     const prepared = preparedSchema.parse(await call("preparar"));
     jobId = prepared.job_id;
+    stage = "upload";
     const imageUrl = await messaging.upload({ base64: prepared.png_base64, mimetype: "image/png", fileName: "mi-qr-enter.png" });
+    stage = "activate";
     const active = activeSchema.parse(await call("activar"));
     if (active.expires_at * 1000 < Date.now() + 2000) throw new Error("miqr_expired_before_send");
     const expires = new Intl.DateTimeFormat("es-EC", { timeZone: "America/Guayaquil", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(active.expires_at * 1000));
+    stage = "send";
     await messaging.send({ to: turn.chat, imageUrl, text: `Mi QR ENTER · ${body.placa}\nÚsalo ahora. Retiro programado a las ${expires} (Ecuador); vigencia original de 10 segundos.` });
     delivered = true;
     sent.push("Mi QR ENTER enviado; retiro automático programado");
     // El PNG, enlace y código de acceso no entran al contexto del modelo.
     return { ok: true, enviado: true, vence_a_las: expires, limpieza_programada: true,
       indicacion: "El QR ya fue enviado. No prometas otros 10 segundos desde esta respuesta ni reutilices la imagen; para otro QR pide una nueva solicitud." };
-  } catch {
+  } catch (error) {
+    const status = error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : null;
+    console.warn("[garita_miqr] delivery_failed", { stage, http_status: status });
     if (jobId && !delivered) await call("cancelar").catch(() => {});
-    return { ok: false, error: "No pude entregar un Mi QR vigente. La limpieza quedó programada. Verifica placa, sesión y permiso en ENTER; vuelve a pedirlo en un mensaje nuevo." };
+    const errors = {
+      prepare: "ENTER no pudo preparar Mi QR. No se inició la entrega; no atribuyas el fallo a la placa sin verificarlo.",
+      upload: "Falló el servicio de imágenes de WhatsApp. ENTER preparó el QR, pero no se activó ningún acceso. No es un error de la placa ni evidencia de sesión vencida.",
+      activate: "No se pudo confirmar la activación de Mi QR en ENTER. Se solicitó su retirada; no lo des por vigente.",
+      send: "No se pudo confirmar la entrega de la imagen a WhatsApp. Se solicitó retirar el QR; no reenvíes ni reutilices esa imagen.",
+    };
+    return { ok: false, fase: stage, error: errors[stage] };
   }
 };

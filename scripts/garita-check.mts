@@ -70,6 +70,8 @@ try {
   const failed = await sendMyQr(turn, "ABC-1234", [], messaging);
   assert.deepEqual(events, ["preparar", "cancelar"]);
   assert.equal((failed as { ok: boolean }).ok, false);
+  assert.equal((failed as { fase: string }).fase, "upload");
+  assert.match((failed as { error: string }).error, /servicio de imágenes/);
   events.length = 0;
   await sendMyQr({ ...turn, isGroup: false }, "ABC-1234", [], messaging);
   assert.deepEqual(events, []);
