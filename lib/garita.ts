@@ -9,6 +9,39 @@ export type Context = {
   userId?: string;
   messageKey?: { id?: string };
   unprompted?: boolean;
+  text?: string;
+};
+
+export const reservationSchema = z.object({
+  accion: z.enum(["listar", "disponibilidad", "crear", "cancelar", "confirmar"]),
+  area_id: z.string().min(1).max(60).optional(),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  duracion: z.number().int().min(1).max(1440).optional(),
+  inicio: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/).optional(),
+  fin: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/).optional(),
+  invitados: z.number().int().min(0).max(10000).optional(),
+  reserva_id: z.number().int().positive().optional(),
+  motivo: z.string().max(300).optional(),
+  observaciones: z.string().max(300).optional(),
+});
+
+export const reservations = async (turn: Context, input: z.infer<typeof reservationSchema>): Promise<unknown> => {
+  if (!availableIn(turn)) return { ok: false, error: "Reservas solo está disponible desde el grupo Jadai autorizado." };
+  try {
+    const response = await fetch(`${process.env.GARITA_PROXY_URL}/agent/reservas`, {
+      method: "POST", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(60_000),
+      headers: { "content-type": "application/json", "x-api-key": process.env.GARITA_API_KEY! },
+      body: JSON.stringify({ ...reservationSchema.parse(input), chat_id: turn.chat, solicitante: turn.userId,
+        message_id: turn.messageKey!.id, texto_confirmacion: input.accion === "confirmar" ? turn.text ?? "" : "" }),
+    });
+    if (!response.ok) {
+      const error = z.object({ detail: z.string().max(600) }).safeParse(await response.json());
+      return { ok: false, error: error.success ? error.data.detail : "No se confirmó la operación. Consulta el historial antes de reintentar." };
+    }
+    return await response.json();
+  } catch {
+    return { ok: false, error: "No se confirmó la operación de reservas. Consulta el historial antes de reintentar; no asumas que se creó o canceló." };
+  }
 };
 
 export const availableIn = (turn: Context): boolean =>

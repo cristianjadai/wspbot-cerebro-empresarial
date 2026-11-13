@@ -55,9 +55,9 @@ export const FEATURES: Feature[] = [
   {
     key: "garita",
     title: "Consulta ENTER desde Jadai",
-    detail: "Consulta la sesión de ENTER, áreas y reglas de reservas y visitas propias, y envía Mi QR del residente con su vigencia de 10 segundos y limpieza persistente. Solo en el grupo Jadai autorizado; cada operación se audita. Crear/cancelar reservas y pases permanentes no está habilitado.",
-    claim: "consultar ENTER y enviar Mi QR del residente desde el grupo Jadai",
-    tools: ["garita_consultar", "garita_mi_qr"],
+    detail: "Consulta ENTER y disponibilidad, crea/cancela reservas propias con confirmación en otro mensaje y envía Mi QR del residente con vigencia de 10 segundos. Solo en el grupo Jadai autorizado; se audita cada operación. Respeta horarios, cupos, límites, costos y aprobación; no cobra ni reembolsa. Los pases permanentes siguen bloqueados.",
+    claim: "consultar ENTER, crear/cancelar reservas con confirmación y enviar Mi QR desde el grupo Jadai",
+    tools: ["garita_consultar", "garita_mi_qr", "garita_reservas"],
   },
   {
     key: "quoted",

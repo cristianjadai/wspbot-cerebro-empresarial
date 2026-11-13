@@ -16,12 +16,29 @@ Preguntas de ejemplo, mencionando al bot en Jadai:
 - «Muéstrame las visitas que tengo creadas»: consulta las dos listas del residente verificado.
 - «Dame mi QR para la placa ABC-1234»: envía Mi QR del residente, con retiro programado a los 10 segundos de activarlo. Usa tu placa real.
 
-La comprobación del 12 de noviembre de 2026 devolvió servicio social habilitado, cero áreas y
-ninguna configuración de áreas. Eso no demuestra que el historial de reservas esté vacío.
-El historial, la ocupación, la creación y la cancelación usan MySQL en la app original y aún
-no están integrados en esta función. Horarios configurados no equivalen a disponibilidad.
-No se anuncian reservas o invitaciones creadas por estas consultas. Los pases permanentes
-siguen sin habilitarse y requieren confirmación explícita.
+La comprobación inicial devolvió servicio social habilitado, cero áreas y ninguna configuración.
+Eso no demuestra que el historial de reservas esté vacío. Ahora `garita_reservas` integra el
+historial propio, disponibilidad MySQL, creación y cancelación. Primero consulta las áreas: si no
+hay ninguna, explica el bloqueo sin pedir fechas ni inventar espacios. Cuando la administración
+configure áreas se aplicarán sus reglas reales. Horarios no equivalen a disponibilidad.
+
+Para crear, pide área/fecha/horas e invitados, consulta disponibilidad y prepara la solicitud.
+El proxy devuelve resumen, costo, garantía, estado esperado y un comando `CONFIRMAR RESERVA`
+con código. Muéstralo y espera otro mensaje del mismo autor. Para cancelar, lista las reservas
+propias, identifica el ID y prepara la cancelación; su comando es `CONFIRMAR CANCELACION`.
+Ambas confirmaciones caducan en cinco minutos, quedan ligadas al grupo/autor/operación y se
+persisten en el volumen. La confirmación proviene del texto actual del webhook, no de argumentos
+del modelo ni de una cita. El modelo no puede confirmar su propia preparación en el mismo mensaje.
+
+La creación revalida sesión, servicio social, alícuota, financiero, área, horarios/duración,
+anticipación, cupos y límites de reservas. El SQL usa transacciones serializables, bloqueo de
+filas/rangos y parámetros; no crea/edita áreas ni hace DDL en ENTER. Los cambios de costos o reglas
+exigen otra preparación. La cancelación valida propiedad, estado y vigencia; cambia a CANCELADA
+sin borrar la fila. Las reservas pendientes de pago se pagan en ENTER; las pendientes de
+aprobación requieren administración. No se realizan cobros, reembolsos ni avisos a terceros.
+Un resultado SQL incierto solo se concilia: nunca se repite una inserción a ciegas. La app puede
+seguir operando sobre esas mismas filas. Invitaciones para visitantes y pases permanentes siguen
+sin habilitarse; estos últimos requieren confirmación explícita.
 
 `garita_mi_qr` es una operación separada y requiere petición explícita del hablante actual y
 una placa. No reutiliza peticiones citadas ni recordatorios. Prepara el PNG sin crear un acceso,
@@ -37,7 +54,8 @@ Configuración: `GARITA_ENABLED=true`, URL privada anterior, `GARITA_API_KEY` ig
 del proxy y `GARITA_GROUP_ID` igual al grupo autorizado del proxy. El servicio de sesión usa
 `AGENT_READ_ENABLED=true`, `AGENT_MIQR_ENABLED=true` y `ENTER_FINANCIAL_HEADERS` privado para
 comprobar los permisos financieros antes de generar Mi QR. `SESSION_ONLY=true` sigue bloqueando
-las otras escrituras; Mi QR tiene su propio permiso explícito.
+las escrituras generales. Reservas usa permiso separado `AGENT_RESERVAS_ENABLED=true` y conexión
+MySQL privada `ENTER_RESERVAS_MYSQL`, con TLS requerido. Mi QR tiene su propio permiso explícito.
 No usar `NEXT_PUBLIC_` para estas variables. Configurar variables antes del despliegue.
 
 Validación: `npm run garita-check`, `npm run features-check`, `npm run smoke` y `npm run build`.

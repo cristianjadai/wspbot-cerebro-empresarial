@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { availableIn, consult, sendMyQr } from "../lib/garita";
+import { availableIn, consult, sendMyQr, reservations } from "../lib/garita";
 
 process.env.GARITA_ENABLED = "true";
 process.env.GARITA_PROXY_URL = "http://garita-session.railway.internal:8097";
@@ -77,3 +77,20 @@ try {
   globalThis.fetch = originalFetch;
 }
 console.log("PASS: Mi QR uploads before activation, sends to the trusted chat, cleans up on failure, and keeps the QR out of model output");
+
+globalThis.fetch = async (url, init) => {
+  assert.equal(url, "http://garita-session.railway.internal:8097/agent/reservas");
+  const data = JSON.parse(init!.body as string);
+  assert.equal(data.chat_id, turn.chat);
+  assert.equal(data.solicitante, turn.userId);
+  assert.equal(data.message_id, "MSG1");
+  assert.equal(data.texto_confirmacion, "CONFIRMAR RESERVA ABCDEF123456");
+  assert.equal("owner_ci" in data, false);
+  return Response.json({ ok: true, backend_verificado: true });
+};
+try {
+  await reservations({ ...turn, text: "CONFIRMAR RESERVA ABCDEF123456" }, { accion: "confirmar" });
+  globalThis.fetch = async () => { throw new Error("internal-secret-connection-string"); };
+  assert.equal(JSON.stringify(await reservations(turn, { accion: "crear" })).includes("internal-secret"), false);
+} finally { globalThis.fetch = originalFetch; }
+console.log("PASS: reservation confirmation text comes from the current webhook turn and connection errors remain private");
