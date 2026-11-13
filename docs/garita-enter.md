@@ -78,3 +78,12 @@ No se promete caducidad fija. Solicitudes repetidas del mismo autor dentro de 60
 reutilizan el mismo código verificado; «otra/nueva» en el mensaje actual solicita una distinta.
 Un resultado incierto se concilia sin repetir escrituras; una creación parcial propia se
 retira condicionalmente por ETag, sin tocar registros ajenos. Un código utilizado no se reactiva.
+
+## Invitar a un amigo
+
+El mismo flujo admite `servicio=VISITA` con `nombre` obligatorio, que puede ser un nombre o
+apodo proporcionado por el usuario. No consulta ni exige registro previo del amigo, placa ni CI.
+Motivo predeterminado: VISITA AL RESIDENTE. No se infiere identidad legal a partir del apodo.
+Genera código de ingreso de visita rápida, no QR de invitado, ni pase permanente. Se conservan
+los controles de grupo, sesión, permisos, auditoría y deduplicación. Un planteamiento hipotético
+no crea un acceso: para actuar se usa una petición actual y clara como «invita a [nombre]».

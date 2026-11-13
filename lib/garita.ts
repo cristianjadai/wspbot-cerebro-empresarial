@@ -84,7 +84,7 @@ export const consult = async (
 
 const preparedSchema = z.object({ job_id: z.string().regex(/^[a-f0-9]{64}$/), png_base64: z.string().min(1).max(200_000), active: z.literal(false) });
 export const quickVisitSchema = z.object({
-  servicio: z.enum(["PEDIDOSYA", "RAPPI", "DELIVERY"]),
+  servicio: z.enum(["PEDIDOSYA", "RAPPI", "DELIVERY", "VISITA"]),
   nombre: z.string().min(1).max(100).optional(),
   motivo: z.string().min(3).max(200).optional(),
   identificacion: z.string().max(30).optional(),

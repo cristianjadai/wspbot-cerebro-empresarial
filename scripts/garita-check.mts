@@ -114,3 +114,16 @@ try {
   assert.equal((result as { backend_verificado: boolean }).backend_verificado, true);
 } finally { globalThis.fetch = originalFetch; }
 console.log("PASS: PedidosYa uses trusted group context and requires no plate or identification");
+
+globalThis.fetch = async (_url, init) => {
+  const data = JSON.parse(init!.body as string);
+  assert.equal(data.servicio, "VISITA");
+  assert.equal(data.nombre, "AMIGO UNO");
+  assert.equal(data.texto_solicitud, "Invita a AMIGO UNO");
+  assert.equal("placa" in data, false);
+  assert.equal("identificacion" in data, false);
+  return Response.json({ ok: true, backend_verificado: true });
+};
+try { await quickVisit({ ...turn, text: "Invita a AMIGO UNO" }, { servicio: "VISITA", nombre: "AMIGO UNO" }); }
+finally { globalThis.fetch = originalFetch; }
+console.log("PASS: named visitors use VISITA and the supplied name without requiring a vehicle or identity number");

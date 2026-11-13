@@ -56,7 +56,7 @@ export const FEATURES: Feature[] = [
     key: "garita",
     title: "Consulta ENTER desde Jadai",
     detail: "Consulta ENTER y disponibilidad, crea/cancela reservas propias con confirmación en otro mensaje y envía Mi QR del residente con vigencia de 10 segundos. Solo en el grupo Jadai autorizado; se audita cada operación. Respeta horarios, cupos, límites, costos y aprobación; no cobra ni reembolsa. Los pases permanentes siguen bloqueados.",
-    claim: "consultar ENTER, generar invitaciones rápidas para PedidosYa/delivery, crear/cancelar reservas con confirmación y enviar Mi QR desde Jadai",
+    claim: "consultar ENTER, invitar a tus amigos y a PedidosYa con códigos de visita, crear/cancelar reservas con confirmación y enviar Mi QR desde Jadai",
     tools: ["garita_consultar", "garita_mi_qr", "garita_reservas", "garita_visita_rapida"],
   },
   {
