@@ -35,12 +35,14 @@ bot   → Done.
 |  |  |
 | --- | --- |
 | **What it is** | One Next.js container: a webhook that answers WhatsApp, and a dashboard that decides what it may do |
-| **Abilities** | 29 switchable features over 59 model tools, plus 3 that are always on |
+| **Abilities** | 30 switchable features over 60 model tools, plus 3 that are always on |
 | **Storage** | Postgres, 26 tables — memory, history, stickers, schedules, supporters, roadmap, spend |
 | **Runs on** | A Dokploy VPS behind Traefik, alongside the WhatsApp gateway it talks to |
-| **Guarded by** | 19 check scripts that exercise the real thing rather than asserting about it |
+| **Guarded by** | 20 check scripts that exercise the real thing rather than asserting about it |
 
 ## Contents
+
+ENTER en Jadai: [acceso privado, reservas y límites actuales](docs/garita-enter.md).
 
 **Understand it** — [Architecture](#architecture) · [The life of one message](#the-life-of-one-message) · [Layout](#layout) · [Notes on the wapi integration](#notes-on-the-wapi-integration)
 

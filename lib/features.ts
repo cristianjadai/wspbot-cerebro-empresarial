@@ -53,6 +53,13 @@ export const ALWAYS: { title: string; detail: string }[] = [
 
 export const FEATURES: Feature[] = [
   {
+    key: "garita",
+    title: "Consulta ENTER desde Jadai",
+    detail: "Consulta la sesión de ENTER, áreas y reglas de reservas y visitas propias mediante un proxy privado. Solo en el grupo Jadai autorizado; cada consulta se audita. Crear/cancelar reservas y generar pases todavía no está habilitado.",
+    claim: "consultar ENTER: sesión, áreas de reservas y visitas propias desde el grupo Jadai",
+    tools: ["garita_consultar"],
+  },
+  {
     key: "quoted",
     title: "Follows what you point at",
     detail:

@@ -12,6 +12,10 @@ services:
       DRIVE_FOLDER_ID: ${DRIVE_FOLDER_ID}
       COMPANY_NAME: ${COMPANY_NAME}
       BOT_ALLOWED_CHATS: ${BOT_ALLOWED_CHATS}
+      GARITA_ENABLED: ${GARITA_ENABLED:-false}
+      GARITA_PROXY_URL: ${GARITA_PROXY_URL:-}
+      GARITA_API_KEY: ${GARITA_API_KEY:-}
+      GARITA_GROUP_ID: ${GARITA_GROUP_ID:-}
       # Content group -> Jadai CRM. All three, or the content_intake feature stays inert.
       CONTENT_INGEST_URL: ${CONTENT_INGEST_URL}
       CONTENT_INGEST_SECRET: ${CONTENT_INGEST_SECRET}
