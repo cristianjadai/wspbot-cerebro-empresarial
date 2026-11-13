@@ -26,7 +26,8 @@
     "draw-check": "tsx --conditions=react-server scripts/draw-check.mts",
     "render-check": "tsx --conditions=react-server --env-file-if-exists=.env scripts/render-check.mts",
     "models-check": "tsx --conditions=react-server scripts/models-check.mts",
-    "video-check": "tsx --conditions=react-server scripts/video-check.mts"
+    "video-check": "tsx --conditions=react-server scripts/video-check.mts",
+    "garita-check": "tsx --conditions=react-server scripts/garita-check.mts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.60",
